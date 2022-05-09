@@ -5,7 +5,7 @@ General utility functions
 import logging
 import re
 from typing import Union
-from xml.dom.minidom import Element
+from xml.dom.minidom import Element, Document
 
 from unidecode import unidecode
 
@@ -44,13 +44,13 @@ class ConfigParser():
                     logging.debug("%s =  %s", repr(key), repr(value))
                     if value == "":
                         raise ValueError()
-                    if key not in self._data.keys():
-                        self._data[key] = value
-                    else:
+                    try:
                         if isinstance(self._data[key], list):
                             self._data[key].append(value)
                         else:
                             self._data[key] = [self._data[key], key]
+                    except KeyError:
+                        self._data[key] = value
                 except ValueError:
                     logging.error(
                         "Couldn't extract configuration from '%s'",
@@ -97,7 +97,12 @@ class XML():
         for node in nodelist:
             if node.nodeType == node.TEXT_NODE:
                 partials.append(node.data)
-        return "".join(partials)
+        joined = "".join(partials)
+        return re.sub(
+            r"\s\s+",
+            " ",
+            unidecode(joined.replace("\n", " ").upper())
+        ).strip()
 
 
 class FileQueryXML():
@@ -130,16 +135,11 @@ class FileQueryXML():
         Returns:
             str: The query text of the element
         """
-        text = XML.get_text(
+        return XML.get_text(
             element.getElementsByTagName(
                 "QueryText"
             )[0].childNodes
         )
-        return re.sub(
-            r"\s\s+",
-            " ",
-            unidecode(text.upper())
-        ).strip()
 
     @staticmethod
     def get_query_results(element: Element) -> dict:
@@ -171,17 +171,38 @@ class FileXML():
     File XML helper methods
     """
     @staticmethod
-    def get_query_number(element: Element) -> str:
-        """Get 'QueryNumber' text from a 'Query' element
+    def get_records_data(document: Document) -> dict:
+        """Get 'RECORDNUM' and 'ABSTRACT' (or 'EXTRACT') from all
+        'RECORD' elements
 
         Args:
-            element (Element): An 'Query' tag element
+            document (Document): A 'FILE' MiniDOM document
 
         Returns:
-            str: The query number of the element
+            dict: A dictionary containing records data
         """
-        return XML.get_text(
-            element.getElementsByTagName(
-                "QueryNumber"
-            )[0].childNodes
-        )
+        records_dict = {}
+
+        for record in document.getElementsByTagName("RECORD"):
+            record_num = int(XML.get_text(
+                record.getElementsByTagName(
+                    "RECORDNUM"
+                )[0].childNodes
+            ))
+            try:
+                abstract = XML.get_text(
+                    record.getElementsByTagName(
+                        "ABSTRACT"
+                    )[0].childNodes
+                )
+            except IndexError:
+                try:
+                    abstract = XML.get_text(
+                        record.getElementsByTagName(
+                            "EXTRACT"
+                        )[0].childNodes
+                    )
+                except IndexError:
+                    continue
+            records_dict[record_num] = abstract
+        return records_dict
