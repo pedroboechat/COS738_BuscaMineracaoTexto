@@ -1,5 +1,5 @@
 """
-Implementation of the query processor
+Implementation of the inverse list generator
 """
 
 import logging
