@@ -168,3 +168,6 @@ cystic_fibrosis
 
 # Logging folder
 log
+
+# Results
+src/RESULT
