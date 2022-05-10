@@ -9,6 +9,8 @@ from xml.dom import minidom
 
 from modules.utils import ConfigParser, FileXML
 
+with open("STOPWORDS.txt", encoding="utf-8") as f:
+    STOPWORDS = f.read().splitlines()
 
 class InverseListGenerator():
     """
@@ -94,13 +96,8 @@ class InverseListGenerator():
         for xml in self._inputs:
             records_dict = FileXML.get_records_data(xml)
             for record_num, abstract in records_dict.items():
-                text = re.sub(
-                    r"[.,;:()%]",
-                    "",
-                    abstract
-                )
-                for word in text.split():
-                    if word.isdigit():
+                for word in abstract.split():
+                    if word.isdigit() or word in STOPWORDS:
                         continue
                     try:
                         words_dict[word].append(record_num)

@@ -84,11 +84,13 @@ class XML():
     General XML helper methods
     """
     @staticmethod
-    def get_text(nodelist: list) -> str:
+    def get_text(nodelist: list, extra_sanitizing: bool = False) -> str:
         """Return text from a node list
 
         Args:
             nodelist (list): List of nodes
+            extra_sanitizing (bool): Whether to remove ponctuation
+            and other characthers
 
         Returns:
             str: Extracted text
@@ -98,6 +100,16 @@ class XML():
             if node.nodeType == node.TEXT_NODE:
                 partials.append(node.data)
         joined = "".join(partials)
+        if extra_sanitizing:
+            return re.sub(
+                r"[.,;:?!\-_()%]",
+                " ",
+                re.sub(
+                    r"\s\s+",
+                    " ",
+                    unidecode(joined.replace("\n", " ").upper())
+                )
+            ).strip()
         return re.sub(
             r"\s\s+",
             " ",
@@ -193,14 +205,16 @@ class FileXML():
                 abstract = XML.get_text(
                     record.getElementsByTagName(
                         "ABSTRACT"
-                    )[0].childNodes
+                    )[0].childNodes,
+                    extra_sanitizing = True
                 )
             except IndexError:
                 try:
                     abstract = XML.get_text(
                         record.getElementsByTagName(
                             "EXTRACT"
-                        )[0].childNodes
+                        )[0].childNodes,
+                        extra_sanitizing = True
                     )
                 except IndexError:
                     continue
