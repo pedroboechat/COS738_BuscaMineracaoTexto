@@ -48,7 +48,7 @@ class ConfigParser():
                         if isinstance(self._data[key], list):
                             self._data[key].append(value)
                         else:
-                            self._data[key] = [self._data[key], key]
+                            self._data[key] = [self._data[key], value]
                     except KeyError:
                         self._data[key] = value
                 except ValueError:
