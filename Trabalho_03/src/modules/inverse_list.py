@@ -97,7 +97,11 @@ class InverseListGenerator():
             records_dict = FileXML.get_records_data(xml)
             for record_num, abstract in records_dict.items():
                 for word in abstract.split():
-                    if word.isdigit() or word in STOPWORDS:
+                    if (
+                        word.isdigit() or
+                        word in STOPWORDS or
+                        len(word) < 3
+                    ):
                         continue
                     try:
                         words_dict[word].append(record_num)
