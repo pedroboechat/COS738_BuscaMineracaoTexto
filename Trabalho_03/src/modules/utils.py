@@ -8,6 +8,8 @@ from typing import Union
 from xml.dom.minidom import Element, Document
 
 from unidecode import unidecode
+import numpy as np
+import pandas as pd
 
 
 class ConfigParser():
@@ -102,7 +104,7 @@ class XML():
         joined = "".join(partials)
         if extra_sanitizing:
             return re.sub(
-                r"[.,;:?!\-_()%]",
+                r"[.,;:?!\[\]\-\"_()%]",
                 " ",
                 re.sub(
                     r"\s\s+",
@@ -220,3 +222,17 @@ class FileXML():
                     continue
             records_dict[record_num] = abstract
         return records_dict
+
+class TF_IDF():
+    """
+    Implements TD-IDF standard
+    """
+    @staticmethod
+    def get_tf_idf(
+        frequency: int,
+        total_docs: int,
+        docs_with_term: int
+    ) -> float:
+        if frequency == 0:
+            return 0
+        return 1 + (np.log(frequency) * np.log(total_docs/docs_with_term))
