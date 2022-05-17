@@ -9,7 +9,6 @@ from xml.dom.minidom import Element, Document
 
 from unidecode import unidecode
 import numpy as np
-import pandas as pd
 
 
 class ConfigParser():
@@ -81,6 +80,60 @@ class ConfigParser():
         return self._data
 
 
+class Tools():
+    """
+    General tools
+    """
+    @staticmethod
+    def get_stopwords() -> str:
+        """Loads stopwords"""
+        with open("STOPWORDS.txt", encoding="utf-8") as file:
+            stopwords = file.read().splitlines()
+        return stopwords
+
+    @staticmethod
+    def sanitize(string: str, remove_stopwords: bool = False) -> str:
+        """Sanitize a text string
+
+        Args:
+            string (str): String to sanitize
+
+        Returns:
+            str: Sanitized string
+        """
+        if remove_stopwords:
+            stopwords = Tools.get_stopwords()
+            text = re.sub(
+                r"[.,;:?!\[\]\-\"'_()%]",
+                " ",
+                re.sub(
+                    r"\s\s+",
+                    " ",
+                    unidecode(string.replace("\n", " ").upper())
+                )
+            ).strip().split(" ")
+            for stopword in stopwords:
+                text = list(filter((stopword).__ne__, text))
+            text = list(filter(lambda x: not x.isdigit(), text))
+            text = list(filter(lambda x: len(x) > 2, text))
+            text = ' '.join(text)
+            return re.sub(
+                r"\s\s+",
+                " ",
+                text.strip()
+            )
+
+        return re.sub(
+            r"[.,;:?!\[\]\-\"'_()%]",
+            " ",
+            re.sub(
+                r"\s\s+",
+                " ",
+                unidecode(string.replace("\n", " ").upper())
+            )
+        ).strip()
+
+
 class XML():
     """
     General XML helper methods
@@ -103,19 +156,11 @@ class XML():
                 partials.append(node.data)
         joined = "".join(partials)
         if extra_sanitizing:
-            return re.sub(
-                r"[.,;:?!\[\]\-\"_()%]",
-                " ",
-                re.sub(
-                    r"\s\s+",
-                    " ",
-                    unidecode(joined.replace("\n", " ").upper())
-                )
-            ).strip()
+            joined = Tools.sanitize(joined)
         return re.sub(
             r"\s\s+",
             " ",
-            unidecode(joined.replace("\n", " ").upper())
+            unidecode(joined.replace("\n", " ").replace(";", " ").upper())
         ).strip()
 
 
@@ -223,7 +268,7 @@ class FileXML():
             records_dict[record_num] = abstract
         return records_dict
 
-class TF_IDF():
+class TFIDF():
     """
     Implements TD-IDF standard
     """
@@ -233,6 +278,7 @@ class TF_IDF():
         total_docs: int,
         docs_with_term: int
     ) -> float:
+        """Calculates TF-IDF"""
         if frequency == 0:
             return 0
         return 1 + (np.log(frequency) * np.log(total_docs/docs_with_term))

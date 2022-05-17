@@ -164,10 +164,7 @@ cython_debug/
 .vscode
 
 # Dataset folder
-cystic_fibrosis
+# cystic_fibrosis
 
 # Logging folder
 log
-
-# Results
-src/RESULT

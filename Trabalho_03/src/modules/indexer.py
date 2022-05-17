@@ -9,7 +9,7 @@ from ast import literal_eval
 import numpy as np
 import pandas as pd
 
-from modules.utils import ConfigParser, TF_IDF
+from modules.utils import ConfigParser, TFIDF
 
 class Indexer():
     """
@@ -75,7 +75,7 @@ class Indexer():
 
     def __run(self) -> None:
         """
-        Run the query processor
+        Run the indexer
         """
         if self.__has_run:
             logging.error("This indexer has already run")
@@ -99,9 +99,6 @@ class Indexer():
         all_documents = sorted(all_documents)
         total_docs = len(all_documents)
 
-        # Get unique terms
-        # all_terms = self.__input["Word"].unique()
-
         # Create 'term x document' matrix
         self.__output = pd.DataFrame(
             columns = ["Term"] + all_documents
@@ -118,7 +115,7 @@ class Indexer():
             row["Term"] = term
             docs_with_term = len(np.unique(term_count[term]))
             for doc in all_documents:
-                row[doc] = TF_IDF.get_tf_idf(
+                row[doc] = TFIDF.get_tf_idf(
                     term_count[term].count(doc),
                     total_docs,
                     docs_with_term

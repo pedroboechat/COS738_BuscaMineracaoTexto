@@ -10,6 +10,7 @@ from datetime import datetime as dt
 from modules.query_processor import QueryProcessor
 from modules.inverse_list import InverseListGenerator
 from modules.indexer import Indexer
+from modules.search_engine import SearchEngine
 
 
 if __name__ == "__main__":
@@ -42,3 +43,6 @@ if __name__ == "__main__":
 
     # Instantiate and run indexer
     indexer = Indexer()
+
+    # Instantiate and run search engine
+    search_engine = SearchEngine()

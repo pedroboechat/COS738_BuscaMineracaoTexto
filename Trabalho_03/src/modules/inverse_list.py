@@ -4,13 +4,9 @@ Implementation of the inverse list generator
 
 import logging
 import os
-import re
 from xml.dom import minidom
 
-from modules.utils import ConfigParser, FileXML
-
-with open("STOPWORDS.txt", encoding="utf-8") as f:
-    STOPWORDS = f.read().splitlines()
+from modules.utils import ConfigParser, FileXML, Tools
 
 class InverseListGenerator():
     """
@@ -74,7 +70,7 @@ class InverseListGenerator():
 
     def __run(self) -> None:
         """
-        Run the query processor
+        Run the inverse list generator
         """
         if self.__has_run:
             logging.error("This inverse list generator has already run")
@@ -88,6 +84,9 @@ class InverseListGenerator():
             for file in self.files["inputs"]:
                 self.__inputs.append(minidom.parse(file))
 
+        # Load STOPWORDS
+        stopwords = Tools.get_stopwords()
+
         # Create words dictionary
         words_dict = {}
 
@@ -99,7 +98,7 @@ class InverseListGenerator():
                 for word in abstract.split():
                     if (
                         word.isdigit() or
-                        word in STOPWORDS or
+                        word in stopwords or
                         len(word) < 3
                     ):
                         continue
