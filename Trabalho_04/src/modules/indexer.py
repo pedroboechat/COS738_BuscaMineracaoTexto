@@ -9,7 +9,7 @@ from ast import literal_eval
 import numpy as np
 import pandas as pd
 
-from modules.utils import ConfigParser, TFIDF
+from modules.utils import ConfigParser, TFIDF, IndexTools
 
 class Indexer():
     """
@@ -91,39 +91,9 @@ class Indexer():
             }
         )
 
-        # Get unique documents
-        all_documents = set()
-        for docs in self.__input["RecordNumbers"]:
-            for doc in docs:
-                all_documents.add(doc)
-        all_documents = sorted(all_documents)
-        total_docs = len(all_documents)
-
         # Create 'term x document' matrix
-        self.__output = pd.DataFrame(
-            columns = ["Term"] + all_documents
-        )
-
-        # Add TF-IDF to matrix
-        term_count = {
-            i: j
-            for _, (i, j) in self.__input.iterrows()
-        }
-        all_rows = []
-        for term in term_count.keys():
-            row = {}
-            row["Term"] = term
-            docs_with_term = len(np.unique(term_count[term]))
-            for doc in all_documents:
-                row[doc] = TFIDF.get_tf_idf(
-                    term_count[term].count(doc),
-                    total_docs,
-                    docs_with_term
-                )
-            all_rows.append(row)
-        self.__output = pd.concat(
-            [self.__output, pd.DataFrame(all_rows)]
-        )
+        logging.debug("Creating Term x Document matrix")
+        self.__output = IndexTools.create_term_document_matrix(self.__input, "RecordNumbers")
 
         # Export output file
         logging.debug("Exporting output")

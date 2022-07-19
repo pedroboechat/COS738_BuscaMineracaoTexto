@@ -6,8 +6,10 @@ import logging
 import os
 
 import pandas as pd
+from pandas.core.frame import DataFrame, Series
+from tqdm import tqdm
 
-from modules.utils import ConfigParser, Tools
+from modules.utils import TFIDF, ConfigParser, Tools, ILGTools, IndexTools
 
 with open("STOPWORDS.txt", encoding="utf-8") as f:
     STOPWORDS = f.read().splitlines()
@@ -46,7 +48,10 @@ class SearchEngine():
         # Load processed queries
         self.__queries = pd.read_csv(
             self.files["queries"],
-            sep = ";"
+            sep = ";",
+            dtype = {
+                "QueryNumber": int
+            }
         )
 
         # Create base results file
@@ -103,32 +108,41 @@ class SearchEngine():
         os.makedirs(os.path.dirname(self.files["queries"]), exist_ok=True)
         os.makedirs(os.path.dirname(self.files["results"]), exist_ok=True)
 
-    def search(self, query: str) -> pd.Series:
+    def search(self, query: str, query_index: DataFrame) -> Series:
         """Searches for a query with the model
 
         Args:
             query (str): Query string to search with
+            query_index (DataFrame): Query index for a query to search
 
         Returns:
             Series: Query search results
         """
+        # logging.info(query_index)
         sanitized_query = Tools.sanitize(
             query,
             remove_stopwords = True,
             use_stemmer = self.__use_stemmer
         )
-        score = pd.Series()
-        for word in sanitized_query.split():
-            term = self.__model.loc[
-                self.__model["Term"] == word
-            ]
-            try:
-                score = score.add(
-                    term.iloc[0, 1:],
-                    fill_value = 0
-                )
-            except IndexError:
-                continue
+        # breakpoint()
+        score = pd.Series(dtype=float)
+        # for word in sanitized_query.split():
+        #     term = self.__model.loc[
+        #         self.__model["Term"] == word
+        #     ]
+        #     try:
+        #         score = score.add(
+        #             term.iloc[0, 1:],
+        #             fill_value = 0
+        #         )
+        tf_idf_similarity = TFIDF.get_similarity_tf_idf(
+            self.__model,
+            sanitized_query,
+            query_index
+        )
+        
+        # logging.info(score.loc[score > 0].sort_values(ascending = False))
+        # raise Exception()
         return score.loc[score > 0].sort_values(ascending = False)
 
     def __run(self) -> None:
@@ -143,21 +157,83 @@ class SearchEngine():
         else:
             logging.debug("Running SearchEngine")
 
+        # Create queries index
+        logging.debug("Creating queries records dict")
+        queries_records_dict = {}
+        for query_number, query_text in self.__queries.itertuples(False, None):
+            queries_records_dict[query_number] = query_text
+
+        logging.debug("Creating queries words dict")
+        queries_words_dict = ILGTools.create_words_dict(
+            queries_records_dict,
+            use_steemer = self.__use_stemmer
+        )
+        logging.debug("Creating queries sorted words dict")
+        queries_sorted_words_dict = pd.DataFrame(
+            ILGTools.sort_words_dict(queries_words_dict).items(),
+            columns = [
+                "Word",
+                "RecordNumbers"
+            ]
+        )
+
+        logging.debug("Creating queries Term x Document matrix")
+        queries_index = IndexTools.create_term_document_matrix(
+            queries_sorted_words_dict,
+            "RecordNumbers"
+        )
+        # with open("test.txt", mode="w") as f:
+        #     f.write(str(queries_index))
+        # queries_index.to_csv("test.txt")
+        # raise
+
         # Search the input queries
         logging.debug("Starting searches")
-        for query_number, query_text in self.__queries.itertuples(False, None):
-            search_results = self.search(query_text)
-            result_tuples = []
-            rank = 0
-            for doc, score in search_results.iteritems():
-                rank += 1
-                result_tuples.append((rank, int(doc), score))
+        for query_number, query_text in tqdm(
+            self.__queries.itertuples(False, None),
+            total=self.__queries.shape[0]
+        ):
+            sanitized_query = Tools.sanitize(
+                query_text,
+                remove_stopwords = True,
+                use_stemmer = self.__use_stemmer
+            ).split()
+            # breakpoint()
+
+            query_results = pd.DataFrame()
+            for doc_number in self.__model.columns[1:]:
+                doc_similarity = TFIDF.get_document_similarity_tf_idf(
+                    self.__model,
+                    queries_index[["Term", query_number]],
+                    doc_number,
+                    sanitized_query
+                )
+                query_results = pd.concat(
+                    [
+                        query_results,
+                        pd.DataFrame(
+                            [(
+                                doc_number,
+                                doc_similarity
+                            )]
+                        )
+                    ],
+                    ignore_index = True
+                )
+
             self.__results = pd.concat([
                 self.__results,
                 pd.DataFrame(
                     [(
                         query_number,
-                        result_tuples
+                        list(
+                            query_results.loc[
+                                query_results[1] > 0
+                            ].sort_values(
+                                by=1,
+                                ascending=False
+                            ).head(40).reset_index().itertuples(name=None)
+                        )
                     )],
                     columns = [
                         "SearchNumber",

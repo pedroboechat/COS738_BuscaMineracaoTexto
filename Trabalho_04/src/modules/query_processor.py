@@ -108,10 +108,10 @@ class QueryProcessor():
             query_number = FileQueryXML.get_query_number(query)
             query_text = FileQueryXML.get_query_text(query)
             query_results = FileQueryXML.get_query_results(query)
-            self.__processed += f"\n{query_number};{query_text}"
+            self.__processed += f"\n{int(query_number)};{query_text}"
             for item, score in query_results.items():
                 votes = sum([int(i) > 0 for i in score])
-                self.__expected += f"\n{query_number};{item};{votes}"
+                self.__expected += f"\n{int(query_number)};{item};{votes}"
 
         # Run exporters
         self.export_processed()

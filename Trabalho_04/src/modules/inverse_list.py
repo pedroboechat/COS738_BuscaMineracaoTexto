@@ -6,7 +6,7 @@ import logging
 import os
 from xml.dom import minidom
 
-from modules.utils import ConfigParser, FileXML, Tools
+from modules.utils import ConfigParser, FileXML, ILGTools
 
 class InverseListGenerator():
     """
@@ -90,9 +90,6 @@ class InverseListGenerator():
             for file in self.files["inputs"]:
                 self.__inputs.append(minidom.parse(file))
 
-        # Load STOPWORDS
-        stopwords = Tools.get_stopwords()
-
         # Create words dictionary
         words_dict = {}
 
@@ -100,30 +97,19 @@ class InverseListGenerator():
         logging.debug("Extracting data from input(s)")
         for xml in self.__inputs:
             records_dict = FileXML.get_records_data(xml)
-            for record_num, abstract in records_dict.items():
-                for word in abstract.split():
-                    if self.__use_stemmer:
-                        word = Tools.sanitize(word, use_stemmer = True)
-                    if (
-                        word.isdigit() or
-                        word in stopwords or
-                        len(word) < 3
-                    ):
-                        continue
-                    try:
-                        words_dict[word].append(record_num)
-                    except KeyError:
-                        words_dict[word] = [record_num]
+            xml_words_dict = ILGTools.create_words_dict(
+                records_dict,
+                use_steemer = self.__use_stemmer
+            )
+            for key, value in xml_words_dict.items():
+                try:
+                    words_dict[key] += value
+                except KeyError:
+                    words_dict[key] = value
 
         # Sort dictionary by occurences
         logging.debug("Sorting words dictionary")
-        sorted_words_dict = {
-            item: words_dict[item] for item in sorted(
-                words_dict,
-                key = lambda x: len(words_dict[x]),
-                reverse = True
-            )
-        }
+        sorted_words_dict = ILGTools.sort_words_dict(words_dict)
 
         # Save information to output
         logging.debug("Creating output")

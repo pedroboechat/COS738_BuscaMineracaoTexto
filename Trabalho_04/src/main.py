@@ -36,13 +36,13 @@ if __name__ == "__main__":
     )
 
     # Instantiate and run query processor
-    query_processor = QueryProcessor()
+    # query_processor = QueryProcessor()
 
     # Instantiate and run inverse list generator
-    inverse_list_generator = InverseListGenerator()
+    # inverse_list_generator = InverseListGenerator()
 
     # Instantiate and run indexer
-    indexer = Indexer()
+    # indexer = Indexer()
 
     # Instantiate and run search engine
     search_engine = SearchEngine()
